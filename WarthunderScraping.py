@@ -1,13 +1,49 @@
 from DrissionPage import ChromiumPage, ChromiumOptions
 from bs4 import BeautifulSoup
+import os
 
 from CloudflareBypasser import CloudflareBypasser
 
+DOCKER_MODE = os.getenv("DOCKERMODE", "false").lower() == "true"
+
+# Chromium options arguments
+arguments = [
+    # "--remote-debugging-port=9222",  # Add this line for remote debugging
+    "-no-first-run",
+    "-force-color-profile=srgb",
+    "-metrics-recording-only",
+    "-password-store=basic",
+    "-use-mock-keychain",
+    "-export-tagged-pdf",
+    "-no-default-browser-check",
+    "-disable-background-mode",
+    "-enable-features=NetworkService,NetworkServiceInProcess,LoadCryptoTokenExtension,PermuteTLSExtensions",
+    "-disable-features=FlashDeprecationWarning,EnablePasswordsAccountStorage",
+    "-deny-permission-prompts",
+    "-disable-gpu",
+    "-accept-lang=en-US",
+    #"-incognito" # You can add this line to open the browser in incognito mode by default
+]
+browser_path = "/usr/bin/google-chrome"
 
 class WarthunderScraping:
     def __init__(self):
-        options = ChromiumOptions()
-        options.set_paths().headless(False)
+        if DOCKER_MODE:
+            from pyvirtualdisplay import Display
+            # Start Xvfb for Docker
+            display = Display(visible=0, size=(1920, 1080))
+            display.start()
+
+            options = ChromiumOptions()
+            options.set_argument("--auto-open-devtools-for-tabs", "true")
+            options.set_argument("--remote-debugging-port=9222")
+            options.set_argument("--no-sandbox")  # Necessary for Docker
+            options.set_argument("--disable-gpu")  # Optional, helps in some cases
+            options.set_paths(browser_path=browser_path).headless(False)
+        else:
+            options = ChromiumOptions()
+            options.set_paths(browser_path=browser_path).headless(False)
+
         options.auto_port()
         self.driver = ChromiumPage(addr_or_opts=options)
 
