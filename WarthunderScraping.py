@@ -1,70 +1,39 @@
-from DrissionPage import ChromiumPage, ChromiumOptions
+import asyncio
+
+from DrissionPage import ChromiumPage
 from bs4 import BeautifulSoup
-import os
 
 from CloudflareBypasser import CloudflareBypasser
 
-DOCKER_MODE = os.getenv("DOCKERMODE", "false").lower() == "true"
-
-# Chromium options arguments
-arguments = [
-    # "--remote-debugging-port=9222",  # Add this line for remote debugging
-    "-no-first-run",
-    "-force-color-profile=srgb",
-    "-metrics-recording-only",
-    "-password-store=basic",
-    "-use-mock-keychain",
-    "-export-tagged-pdf",
-    "-no-default-browser-check",
-    "-disable-background-mode",
-    "-enable-features=NetworkService,NetworkServiceInProcess,LoadCryptoTokenExtension,PermuteTLSExtensions",
-    "-disable-features=FlashDeprecationWarning,EnablePasswordsAccountStorage",
-    "-deny-permission-prompts",
-    "-disable-gpu",
-    "-accept-lang=en-US",
-    #"-incognito" # You can add this line to open the browser in incognito mode by default
-]
-browser_path = "/usr/bin/google-chrome"
 
 class WarthunderScraping:
-    def __init__(self):
-        if DOCKER_MODE:
-            from pyvirtualdisplay import Display
-            # Start Xvfb for Docker
-            display = Display(visible=0, size=(1920, 1080))
-            display.start()
+    def __init__(self, driver: ChromiumPage):
+        self.driver = driver
 
-            options = ChromiumOptions()
-            options.set_argument("--auto-open-devtools-for-tabs", "true")
-            options.set_argument("--remote-debugging-port=9222")
-            options.set_argument("--no-sandbox")  # Necessary for Docker
-            options.set_argument("--disable-gpu")  # Optional, helps in some cases
-            options.set_paths(browser_path=browser_path).headless(False)
-        else:
-            options = ChromiumOptions()
-            options.set_paths(browser_path=browser_path).headless(False)
+    async def get_player_stat(self, name: str):
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, self._get_player_stat, name)
+        return result
 
-        options.auto_port()
-        self.driver = ChromiumPage(addr_or_opts=options)
-
-    async def get_player_stat(self, name: str) -> dict:
-        html = await self.get_warthunder_profile_html(name)
-        data = await self.parse_data_from_html(html)
+    def _get_player_stat(self, name: str) -> dict:
+        html = self.get_warthunder_profile_html(name)
+        data = self.parse_data_from_html(html)
         return data
 
-    async def get_warthunder_profile_html(self, name: str) -> str:
+    def get_warthunder_profile_html(self, name: str) -> str:
         url = f"https://warthunder.com/en/community/userinfo/?nick={name}"
-        driver = await self.bypass_cloudflare(url, 5)
-        html = driver.html
+        tab = self.bypass_cloudflare(url, 5)
+        html = tab.html
+        tab.close()
         return html
 
-    async def bypass_cloudflare(self, url: str, retries: int, log: bool = False):
+    def bypass_cloudflare(self, url: str, retries: int, log: bool = False):
         driver = self.driver
         try:
-            driver.get(url)
-            bypasser = CloudflareBypasser(driver, retries, log)
-            await bypasser.bypass()
-            return driver
+            tab = driver.new_tab(url, new_window=False)
+            bypasser = CloudflareBypasser(tab, retries, log)
+            bypasser.bypass()
+            return tab
         except Exception as error:
             raise error
 
@@ -79,7 +48,7 @@ class WarthunderScraping:
         else:
             return single_data
 
-    async def parse_data_from_html(self, html: str) -> dict:
+    def parse_data_from_html(self, html: str) -> dict:
         data = {}
 
         soup = BeautifulSoup(html, "html.parser")
@@ -258,8 +227,3 @@ class WarthunderScraping:
         data["tip"] = "Thanks to Cloudflare, to request the data it may take a long time. Please be patient."
 
         return data
-
-    # get_player_stat("ABC")
-
-
-warthunder_scraping = WarthunderScraping()

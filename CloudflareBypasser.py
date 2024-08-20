@@ -1,11 +1,9 @@
-import asyncio
-
-from DrissionPage import ChromiumPage
+import time
 
 
 class CloudflareBypasser:
-    def __init__(self, driver: ChromiumPage, max_retries=-1, log=True):
-        self.driver = driver
+    def __init__(self, tab, max_retries=-1, log=True):
+        self.tab = tab
         self.max_retries = max_retries
         self.log = log
 
@@ -33,7 +31,7 @@ class CloudflareBypasser:
 
     def locate_cf_button(self):
         button = None
-        eles = self.driver.eles("tag:input")
+        eles = self.tab.eles("tag:input")
         for ele in eles:
             if "name" in ele.attrs.keys() and "type" in ele.attrs.keys():
                 if "turnstile" in ele.attrs["name"] and ele.attrs["type"] == "hidden":
@@ -45,7 +43,7 @@ class CloudflareBypasser:
         else:
             # If the button is not found, search it recursively
             self.log_message("Basic search failed. Searching for button recursively.")
-            ele = self.driver.ele("tag:body")
+            ele = self.tab.ele("tag:body")
             iframe = self.search_recursively_shadow_root_with_iframe(ele)
             if iframe:
                 button = self.search_recursively_shadow_root_with_cf_input(iframe("tag:body"))
@@ -71,13 +69,13 @@ class CloudflareBypasser:
 
     def is_bypassed(self):
         try:
-            title = self.driver.html
+            title = self.tab.html
             return "Verifying you are human" not in title
         except Exception as e:
             self.log_message(f"Error checking page title: {e}")
             return False
 
-    async def bypass(self):
+    def bypass(self):
 
         try_count = 0
 
@@ -89,7 +87,7 @@ class CloudflareBypasser:
             self.log_message(f"Attempt {try_count + 1}: Verification page detected. Trying to bypass...")
 
             try_count += 1
-            await asyncio.sleep(2)
+            time.sleep(2)
 
         if self.is_bypassed():
             self.log_message("Bypass successful.")
