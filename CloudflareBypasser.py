@@ -1,11 +1,11 @@
+import logging
 import time
 
 
 class CloudflareBypasser:
-    def __init__(self, tab, max_retries=-1, log=True):
+    def __init__(self, tab, max_retries=-1):
         self.tab = tab
         self.max_retries = max_retries
-        self.log = log
 
     def search_recursively_shadow_root_with_iframe(self, ele):
         if ele.shadow_root:
@@ -42,54 +42,50 @@ class CloudflareBypasser:
             return button
         else:
             # If the button is not found, search it recursively
-            self.log_message("Basic search failed. Searching for button recursively.")
+            logging.warning("Basic search failed. Searching for button recursively.")
             ele = self.tab.ele("tag:body")
             iframe = self.search_recursively_shadow_root_with_iframe(ele)
             if iframe:
                 button = self.search_recursively_shadow_root_with_cf_input(iframe("tag:body"))
             else:
-                self.log_message("Iframe not found. Button search failed.")
+                logging.warning("Iframe not found. Button search failed.")
             return button
-
-    def log_message(self, message):
-        if self.log:
-            print(message)
 
     def click_verification_button(self):
         try:
             button = self.locate_cf_button()
             if button:
-                self.log_message("Verification button found. Attempting to click.")
+                logging.info("Verification button found. Attempting to click.")
                 button.click()
             else:
-                self.log_message("Verification button not found.")
+                logging.warning("Verification button not found.")
 
         except Exception as e:
-            self.log_message(f"Error clicking verification button: {e}")
+            logging.warning(f"Error clicking verification button: {e}")
 
     def is_bypassed(self):
         try:
             title = self.tab.html
             return "Verifying you are human" not in title
         except Exception as e:
-            self.log_message(f"Error checking page title: {e}")
+            logging.warning(f"Error checking page title: {e}")
             return False
 
-    def bypass(self):
-
+    def bypass(self, name):
+        logging.info(f"{name} : Attempting to bypass CF")
         try_count = 0
 
         while not self.is_bypassed():
             if 0 < self.max_retries + 1 <= try_count:
-                self.log_message("Exceeded maximum retries. Bypass failed.")
+                logging.info(f"{name} : Exceeded maximum retries. Bypass failed")
                 break
 
-            self.log_message(f"Attempt {try_count + 1}: Verification page detected. Trying to bypass...")
+            logging.info(f"{name} : Attempt {try_count + 1}")
 
             try_count += 1
             time.sleep(2)
 
         if self.is_bypassed():
-            self.log_message("Bypass successful.")
+            logging.info(f"{name} : Bypass successful")
         else:
-            self.log_message("Bypass failed.")
+            logging.info(f"{name} : Bypass failed")

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from DrissionPage import ChromiumPage
 from bs4 import BeautifulSoup
@@ -22,17 +23,24 @@ class WarthunderScraping:
 
     def get_warthunder_profile_html(self, name: str) -> str:
         url = f"https://warthunder.com/en/community/userinfo/?nick={name}"
-        tab = self.bypass_cloudflare(url, 5)
-        html = tab.html
-        tab.close()
+        tab = None
+        try:
+            tab = self.bypass_cloudflare(url, 20, name=name)
+            html = tab.html
+            tab.close()
+        except Exception as error:
+            logging.error(f"{name} : Failed to request {url} : {error}")
+            tab.close()
+            raise error
         return html
 
-    def bypass_cloudflare(self, url: str, retries: int, log: bool = False):
+    def bypass_cloudflare(self, url: str, retries: int, name: str = ""):
         driver = self.driver
         try:
+            logging.info(f"{name} : Requesting {url}")
             tab = driver.new_tab(url, new_window=False)
-            bypasser = CloudflareBypasser(tab, retries, log)
-            bypasser.bypass()
+            bypasser = CloudflareBypasser(tab, retries)
+            bypasser.bypass(name)
             return tab
         except Exception as error:
             raise error
