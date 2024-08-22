@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 from DrissionPage import ChromiumPage
@@ -10,6 +11,9 @@ from CloudflareBypasser import CloudflareBypasser
 class WarthunderScraping:
     def __init__(self, driver: ChromiumPage):
         self.driver = driver
+
+        with open("scraping_config.json", "r") as f:
+            self.config = json.load(f)
 
     async def get_player_stat(self, name: str):
         loop = asyncio.get_event_loop()
@@ -62,7 +66,7 @@ class WarthunderScraping:
         soup = BeautifulSoup(html, "html.parser")
 
         # Check if the player exist
-        player_not_found_selector = "body > div.content > div > div > div.error-page__title.error-page__title--big"
+        player_not_found_selector = self.config.get("player_not_found_selector")
         player_not_found = soup.select(player_not_found_selector)
         if player_not_found:  # Return if the player not found
             data["code"] = 404
@@ -70,122 +74,78 @@ class WarthunderScraping:
             data["tip"] = "The nickname is case sensitive. Please check the nickname and try again."
             return data
 
+        data = self.config.get("init_data", {})
+
         # Get the player's nickname
-        nickname_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-nick"
+        nickname_selector = self.config.get("nickname_selector")
         nickname = soup.select(nickname_selector)
         if len(nickname) >= 1:
             nickname = nickname[0].get_text(strip=True)
-        else:
-            nickname = None
-        data["nickname"] = nickname
+            data["nickname"] = nickname
 
         # Get the player's clan info
-        clan_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-clan > a"
+        clan_selector = self.config.get("clan_selector")
         clan = soup.select(clan_selector)
         if len(clan) >= 1:
             clan_name = clan[0].get_text(strip=True)
-            clan_url = f"https://warthunder.com{clan[0].get('href', default=None)}"
-        else:
-            clan_name = None
-            clan_url = None
-        data["clan_name"] = clan_name
-        data["clan_url"] = clan_url
+            clan_url = f"https://warthunder.com{clan[0].get('href', default='')}"
+            data["clan_name"] = clan_name
+            data["clan_url"] = clan_url
 
         # Get the player's title
-        player_title_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(3)"
+        player_title_selector = self.config.get("player_title_selector")
         player_title = soup.select(player_title_selector)
         if (len(player_title) >= 1) and ("Level" not in player_title[0].get_text(strip=True)):
             player_title = player_title[0].get_text(strip=True)
+            data["player_title"] = player_title
         else:
             player_title = None
-        data["player_title"] = player_title
 
         # Get the player's level
         if player_title:  # Some player do not have player title, need a check here
-            player_level_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(4)"
+            player_level_selector = self.config.get("player_level_selector_1")
         else:
-            player_level_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(3)"
+            player_level_selector = self.config.get("player_level_selector_2")
         player_level = soup.select(player_level_selector)
-        if (len(player_level) >= 1):
+        if len(player_level) >= 1:
             player_level = int(player_level[0].get_text(strip=True)[6:])
-        else:
-            player_level = None
-        data["player_level"] = player_level
+            data["player_level"] = player_level
 
         # Get the player's register date
-        register_date_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-regdate"
+        register_date_selector = self.config.get("register_date_selector")
         register_date = soup.select(register_date_selector)
-        if (len(register_date) >= 1):
+        if len(register_date) >= 1:
             register_date = register_date[0].get_text(strip=True)[18:]
-        else:
-            register_date = None
-        data["register_date"] = register_date
+            data["register_date"] = register_date
 
         # Get the player's avatar
-        avatar_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > div > img"
+        avatar_selector = self.config.get("avatar_selector")
         avatar = soup.select(avatar_selector)
-        if (len(avatar) >= 1):
-            avatar = avatar[0].get("src", default=None)
-        else:
-            avatar = None
-        data["avatar"] = avatar
+        if len(avatar) >= 1:
+            avatar = avatar[0].get("src", default="")
+            data["avatar"] = avatar
 
-        # Player statistics
-        statistics = {"arcade": {"aviation": {}, "ground": {}, "fleet": {}},
-                      "realistic": {"aviation": {}, "ground": {}, "fleet": {}},
-                      "simulation": {"aviation": {}, "ground": {}, "fleet": {}}}
-
-        # Gernal statistics
-        arcade_statistics_selector = ("arcade",
-                                      "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-profile__stat.user-stat > div > ul.user-stat__list.arcadeFightTab.is-visible")
-        realistic_statistics_selector = ("realistic",
-                                         "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-profile__stat.user-stat > div > ul.user-stat__list.historyFightTab")
-        simulation_selector = ("simulation",
-                               "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-profile__stat.user-stat > div > ul.user-stat__list.simulationFightTab")
-        title = ["Placeholder", "Victories", "CompletedMissions", "VictoriesPerBattlesRatio", "Deaths", "LionsEarned",
-                 "PlayTime", "AirTargetsDestroyed", "GroundTargetsDestroyed", "NavalTargetsDestroyed"]
-        for i in [arcade_statistics_selector, realistic_statistics_selector, simulation_selector]:
-            game_type = i[0]
-            statistics_soup = soup.select(i[1])
-            if (len(statistics_soup) >= 1):
+        # general statistics
+        general_statistics_selectors = self.config.get("general_statistics_selectors")
+        title = self.config.get("general_statistics_title")
+        for game_type, selector in general_statistics_selectors:
+            statistics_soup = soup.select(selector)
+            if len(statistics_soup) >= 1:
                 statistics_soup = statistics_soup[0].find_all('li')
                 for j in range(1, len(statistics_soup)):
                     single_data = statistics_soup[j].get_text(strip=True)
-                    statistics[game_type][title[j]] = self.format_single_data(single_data)
-            else:
-                for j in title:
-                    statistics[game_type][j] = None
+                    single_data = self.format_single_data(single_data)
+                    if single_data:
+                        data["statistics"][game_type][title[j]] = single_data
 
         # Detailed statistics for aviation, ground, fleet
-        aviation_title = ["AirBattle", "AirBattlesInFighters", "AirBattlesInBombers", "AirBattlesInAttackers",
-                          "TimePlayedInAirBattles", "TimePlayedInFighter", "TimePlayedInBomber",
-                          "TimePlayedInAttackers",
-                          "TotalTargetsDestroyed", "AirTargetsDestroyed", "GroundTargetsDestroyed",
-                          "NavalTargetsDestroyed"]
-        ground_title = ["GroundBattles", "GroundBattlesInTanks", "GroundBattlesInSPGs", "GroundBattlesInHeavyTanks",
-                        "GroundBattlesInSPAA", "TimePlayedInGroundBattles", "TankBattleTime", "TankDestroyerBattleTime",
-                        "HeavyTankBattleTime", "SPAABattleTime", "TotalTargetsDestroyed", "AirTargetsDestroyed",
-                        "GroundTargetsDestroyed", "NavalTargetsDestroyed"]
-        fleet_title = ["NavalBattles", "ShipBattles", "MotorTorpedoBoatBattles", "MotorGunBoatBattles",
-                       "MotorTorpedoGunBoatBattles", "Sub-chaserBattles", "DestroyerBattles", "NavalFerryBargeBattles",
-                       "TimePlayedNaval", "TimePlayedOnShip", "TimePlayedOnMotorTorpedoBoat",
-                       "TimePlayedOnMotorGunBoat",
-                       "TimePlayedOnMotorTorpedoGunBoat", "TimePlayedOnSub-chaser", "TimePlayedOnDestroyer",
-                       "TimePlayedOnNavalFerryBarge", "TotalTargetsDestroyed", "AirTargetsDestroyed",
-                       "GroundTargetsDestroyed", "NavalTargetsDestroyed"]
+        aviation_title = self.config.get("aviation_statistics_title")
+        ground_title = self.config.get("ground_statistics_title")
+        fleet_title = self.config.get("fleet_statistics_title")
 
-        aviation_selectors = [
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.arcadeFightTab.is-visible",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.historyFightTab",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.simulationFightTab"]
-        ground_selectors = [
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.arcadeFightTab.is-visible",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.historyFightTab",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.simulationFightTab"]
-        fleet_selectors = [
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.arcadeFightTab.is-visible",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.historyFightTab",
-            "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.community__user-rate.user-rate > div.user-rate__fightType > div > div.user-stat__list-row.is-active > ul.user-stat__list.simulationFightTab"]
+        aviation_selectors = self.config.get("aviation_selectors")
+        ground_selectors = self.config.get("ground_selectors")
+        fleet_selectors = self.config.get("fleet_selectors")
 
         aviation = (aviation_title, aviation_selectors, 'aviation')
         ground = (ground_title, ground_selectors, 'ground')
@@ -199,21 +159,16 @@ class WarthunderScraping:
                     statistics_soup = statistics_soup[0].find_all('li')
                     for j in range(len(statistics_soup)):
                         single_data = statistics_soup[j].get_text(strip=True)
-                        statistics[game_type[i]][army][titles[j]] = self.format_single_data(single_data)
-                else:
-                    for j in titles:
-                        statistics[game_type[i]][army][j] = None
-
-        data["statistics"] = statistics
+                        single_data = self.format_single_data(single_data)
+                        if single_data:
+                            data["statistics"][game_type[i]][army][titles[j]] = single_data
 
         # Vehicles and rewards
-        vehicles_and_rewards = {"USA": {}, "USSR": {}, "GreatBritain": {}, "Germany": {}, "Japan": {}, "Italy": {},
-                                "France": {}, "China": {}, "Sweden": {}, "Israel": {}}
-        countries = ["USA", "USSR", "GreatBritain", "Germany", "Japan", "Italy", "France", "China", "Sweden", "Israel"]
-        titles = ["OwnedVehicles", "EliteVehicles", "Medals"]
-        owned_vehicles_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile__score.user-score > ul:nth-child(2)"
-        elite_vehicles_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile__score.user-score > ul:nth-child(3)"
-        medals_selector = "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile__score.user-score > ul:nth-child(4)"
+        countries = self.config.get("vehicles_and_rewards_countries")
+        titles = self.config.get("vehicles_and_rewards_title")
+        owned_vehicles_selector = self.config.get("owned_vehicles_selector")
+        elite_vehicles_selector = self.config.get("elite_vehicles_selector")
+        medals_selector = self.config.get("medals_selector")
         selectors = [owned_vehicles_selector, elite_vehicles_selector, medals_selector]
 
         for i in range(len(selectors)):
@@ -222,12 +177,9 @@ class WarthunderScraping:
                 vehicles_soup = vehicles_soup[0].find_all('li')
                 for j in range(1, len(vehicles_soup)):
                     single_data = vehicles_soup[j].get_text(strip=True)
-                    vehicles_and_rewards[countries[j - 1]][titles[i]] = self.format_single_data(single_data)
-            else:
-                for j in countries:
-                    vehicles_and_rewards[j][titles[i]] = None
-
-        data["vehicles_and_rewards"] = vehicles_and_rewards
+                    single_data = self.format_single_data(single_data)
+                    if single_data:
+                        data["vehicles_and_rewards"][countries[j - 1]][titles[i]] = single_data
 
         data["url"] = f"https://warthunder.com/en/community/userinfo/?nick={nickname}"
         data["code"] = 200

@@ -2,14 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-import uvicorn
 from DrissionPage import ChromiumPage, ChromiumOptions
 from fastapi import FastAPI
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
 from fastapi_utils.tasks import repeat_every
-
 
 from WarthunderScraping import WarthunderScraping
 
@@ -61,11 +59,8 @@ async def player_stat(name: str):
 async def favicon():
     return None
 
-@repeat_every(seconds=60*60*24)
+
+@repeat_every(seconds=60 * 60 * 24)
 async def clear_cache():
     logging.info("Clearing cache")
     await FastAPICache.clear("warthunder")
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=5200, log_config="log_config.yaml", reload=True)
