@@ -3,10 +3,11 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from DrissionPage import ChromiumPage, ChromiumOptions
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
+from fastapi_limiter.depends import RateLimiter
 from fastapi_utils.tasks import repeat_every
 
 from WarthunderScraping import WarthunderScraping
@@ -33,6 +34,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await clear_cache()
     FastAPICache.init(InMemoryBackend())
     yield
+    await FastAPICache.clear("warthunder")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -49,7 +51,7 @@ async def root():
 
 
 @cache(namespace="warthunder")
-@app.get("/player/{name}")
+@app.get("/player/{name}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def player_stat(name: str):
     result = await cache_get_player_stat(name)
     return result

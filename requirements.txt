@@ -5,4 +5,5 @@ beautifulsoup4~=4.12.3
 pyyaml~=6.0
 fastapi_cache2~=0.2.2
 fastapi-utils~=0.7.0
-typing-inspect~= 0.9.0
+typing-inspect~=0.9.0
+fastapi-limiter~=0.1.6
