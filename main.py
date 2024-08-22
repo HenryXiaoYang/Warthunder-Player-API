@@ -3,12 +3,14 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from DrissionPage import ChromiumPage, ChromiumOptions
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
-from fastapi_limiter.depends import RateLimiter
 from fastapi_utils.tasks import repeat_every
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from WarthunderScraping import WarthunderScraping
 
@@ -37,7 +39,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await FastAPICache.clear("warthunder")
 
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @cache(namespace="warthunder", expire=300)
@@ -51,8 +56,9 @@ async def root():
 
 
 @cache(namespace="warthunder")
-@app.get("/player/{name}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
-async def player_stat(name: str):
+@app.get("/player/{name}")
+@limiter.limit("5/minute")
+async def player_stat(request: Request, response: Response, name: str):
     result = await cache_get_player_stat(name)
     return result
 
