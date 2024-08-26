@@ -63,19 +63,20 @@ class CloudflareBypasser:
         except Exception as e:
             logging.warning(f"Error clicking verification button: {e}")
 
-    def is_bypassed(self):
+    def is_bypassed(self, name):
         try:
             title = self.tab.html
             return "Verifying you are human" not in title
-        except Exception as e:
-            logging.warning(f"Error checking page title: {e}")
+        except Exception:
+            logging.warning(f"{name}: Error checking page title. Refreshing page. Fuck CF!")
+            self.tab.refresh(ignore_cache=True)
             return False
 
     def bypass(self, name):
         logging.info(f"{name} : Attempting to bypass CF")
         try_count = 0
 
-        while not self.is_bypassed():
+        while not self.is_bypassed(name):
             if 0 < self.max_retries + 1 <= try_count:
                 logging.info(f"{name} : Exceeded maximum retries. Bypass failed")
                 break
@@ -85,7 +86,7 @@ class CloudflareBypasser:
             try_count += 1
             time.sleep(2)
 
-        if self.is_bypassed():
+        if self.is_bypassed(name):
             logging.info(f"{name} : Bypass successful")
         else:
             logging.info(f"{name} : Bypass failed")
