@@ -74,7 +74,7 @@ class WarthunderScraping:
             data["tip"] = "The nickname is case sensitive. Please check the nickname and try again."
             return data
 
-        data = self.config.get("init_data", {})
+        data = self.config.get("init_data").copy()
 
         # Get the player's nickname
         nickname_selector = self.config.get("nickname_selector")
