@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from copy import deepcopy
 
 from DrissionPage import ChromiumPage
 from bs4 import BeautifulSoup
@@ -60,7 +61,7 @@ class WarthunderScraping:
         else:
             return single_data
 
-    def parse_data_from_html(self, html: str) -> dict:
+    def parse_data_from_html(self, html: str) ->     dict:
         data = {}
 
         soup = BeautifulSoup(html, "html.parser")
@@ -74,7 +75,7 @@ class WarthunderScraping:
             data["tip"] = "The nickname is case sensitive. Please check the nickname and try again."
             return data
 
-        data = self.config.get("init_data").copy()
+        data = deepcopy(self.config.get("init_data"))
 
         # Get the player's nickname
         nickname_selector = self.config.get("nickname_selector")
