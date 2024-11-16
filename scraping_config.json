@@ -255,11 +255,11 @@
     "tip": "Thanks to Cloudflare, to request the data it may take a long time. Please be patient."
   },
   "player_not_found_selector": "body > div.content > div > div > div.error-page__title.error-page__title--big",
+  "player_data_list_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul",
   "nickname_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-nick",
   "clan_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-clan > a",
-  "player_title_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(3)",
-  "player_level_selector_1": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(4)",
-  "player_level_selector_2": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(3)",
+  "player_level_selector_in_clan": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(4)",
+  "player_level_selector_not_in_clan": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li:nth-child(3)",
   "register_date_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > ul > li.user-profile__data-regdate",
   "avatar_selector": "#bodyRoot > div.content > div:nth-child(2) > div:nth-child(3) > div > section > div.user-info > div.user-profile > div > img",
   "general_statistics_title": [

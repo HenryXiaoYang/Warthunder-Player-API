@@ -77,6 +77,13 @@ class WarthunderScraping:
 
         data = deepcopy(self.config.get("init_data"))
 
+        # check if the player is in clan
+        in_clan = True
+        player_data_list_selector = self.config.get("player_data_list_selector")
+        player_data_list = soup.select(player_data_list_selector)
+        if len(player_data_list[0]) == 10:
+            in_clan = False
+
         # Get the player's nickname
         nickname_selector = self.config.get("nickname_selector")
         nickname = soup.select(nickname_selector)
@@ -85,30 +92,23 @@ class WarthunderScraping:
             data["nickname"] = nickname
 
         # Get the player's clan info
-        clan_selector = self.config.get("clan_selector")
-        clan = soup.select(clan_selector)
-        if len(clan) >= 1:
-            clan_name = clan[0].get_text(strip=True)
-            clan_url = f"https://warthunder.com{clan[0].get('href', default='')}"
-            data["clan_name"] = clan_name
-            data["clan_url"] = clan_url
-
-        # Get the player's title
-        player_title_selector = self.config.get("player_title_selector")
-        player_title = soup.select(player_title_selector)
-        if (len(player_title) >= 1) and ("Level" not in player_title[0].get_text(strip=True)):
-            player_title = player_title[0].get_text(strip=True)
-            data["player_title"] = player_title
-        else:
-            player_title = None
+        if in_clan:
+            clan_selector = self.config.get("clan_selector")
+            clan = soup.select(clan_selector)
+            if len(clan) >= 1:
+                clan_name = clan[0].get_text(strip=True)
+                clan_url = f"https://warthunder.com{clan[0].get('href', default='')}"
+                data["clan_name"] = clan_name
+                data["clan_url"] = clan_url
 
         # Get the player's level
-        if player_title:  # Some player do not have player title, need a check here
-            player_level_selector = self.config.get("player_level_selector_1")
+        if in_clan:  # Some player do not have player title, need a check here
+            player_level_selector = self.config.get("player_level_selector_in_clan")
         else:
-            player_level_selector = self.config.get("player_level_selector_2")
+            player_level_selector = self.config.get("player_level_selector_not_in_clan")
         player_level = soup.select(player_level_selector)
         if len(player_level) >= 1:
+            debug = player_level[0].get_text(strip=True)[6:]
             player_level = int(player_level[0].get_text(strip=True)[6:])
             data["player_level"] = player_level
 
