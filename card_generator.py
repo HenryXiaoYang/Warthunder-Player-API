@@ -16,7 +16,6 @@ matplotlib.use('Agg')  # 必须在导入 pyplot 之前设置
 async def card_generator(data) -> BytesIO:
     # 字体设置
     custom_font_path = "./微软雅黑.ttf"
-    custom_font = fm.FontProperties(fname=custom_font_path)
 
     fm.fontManager.addfont(custom_font_path)
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 使用微软雅黑字体
@@ -131,15 +130,15 @@ async def card_generator(data) -> BytesIO:
 
     modes = ['arcade', 'realistic', 'simulation']
     victories = []
-    missions = []
     air_battles = []
     ground_battles = []
     naval_battles = []
+    kills = []
+    deaths = []
 
     for mode in modes:
         stats = data.get('statistics', {}).get(mode, {})
         victories.append(float(stats.get('VictoriesPerBattlesRatio', '0%').strip('%') or 0))
-        missions.append(stats.get('CompletedMissions', 0))
 
         # 获取详细战斗数据
         air_stats = stats.get('aviation', {})
@@ -149,6 +148,9 @@ async def card_generator(data) -> BytesIO:
         air_battles.append(air_stats.get('AirBattle', 0))
         ground_battles.append(ground_stats.get('GroundBattles', 0))
         naval_battles.append(fleet_stats.get('NavalBattles', 0))
+        kills.append(stats.get('AirTargetsDestroyed', 0) + stats.get('GroundTargetsDestroyed', 0) + stats.get('NavalTargetsDestroyed', 0))
+        deaths.append(stats.get('Deaths', 0))
+
 
     # 创建多组柱状图
     x = np.arange(len(modes))
@@ -168,14 +170,15 @@ async def card_generator(data) -> BytesIO:
     })
 
     # 更新柱状图颜色
-    colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6']
+    colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e', '#95a5a6', '#1abc9c', '#f39c12', '#d35400']
 
     # 在创建柱状图时应用新颜色
     bars1 = ax.bar(x - width_bar * 2, victories, width_bar, label='胜率 (%)', color=colors[0])
     bars2 = ax.bar(x - width_bar, air_battles, width_bar, label='空战次数', color=colors[1])
     bars3 = ax.bar(x, ground_battles, width_bar, label='陆战次数', color=colors[2])
     bars4 = ax.bar(x + width_bar, naval_battles, width_bar, label='海战次数', color=colors[3])
-    bars5 = ax.bar(x + width_bar * 2, missions, width_bar, label='完成任务数', color=colors[4])
+    bars5 = ax.bar(x + width_bar * 2, kills, width_bar, label='击杀数', color=colors[4])
+    bars6 = ax.bar(x + width_bar * 3, deaths, width_bar, label='死亡数', color=colors[5])
 
     # 为每个柱状图添加数值标签
     def autolabel(rects, labels):
@@ -194,7 +197,8 @@ async def card_generator(data) -> BytesIO:
     autolabel(bars2, ['空战'])
     autolabel(bars3, ['陆战'])
     autolabel(bars4, ['海战'])
-    autolabel(bars5, ['任务'])
+    autolabel(bars5, ['击杀'])
+    autolabel(bars6, ['死亡'])
 
     ax.set_ylabel('数值')
     ax.set_title('战斗数据统计')
@@ -203,8 +207,7 @@ async def card_generator(data) -> BytesIO:
     ax.legend()
 
     # 更新y轴显示范围
-    ax.set_ylim(0, max(max(victories), max(air_battles), max(ground_battles),
-                       max(naval_battles), max(missions)) * 1.2)  # 设置上限为最大值的1.2倍
+    ax.set_ylim(0, max(max(victories), max(air_battles), max(ground_battles), max(naval_battles), max(kills), max(deaths)) * 1.2)  # 设置上限为最大值的1.2倍
 
     # 将matplotlib图表转换为PIL图像
     canvas = FigureCanvas(fig)
