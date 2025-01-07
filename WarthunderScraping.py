@@ -35,7 +35,6 @@ class WarthunderScraping:
             tab.close()
         except Exception as error:
             logging.error(f"{name} : Failed to request {url} : {error}")
-            tab.close()
             raise error
         return html
 
