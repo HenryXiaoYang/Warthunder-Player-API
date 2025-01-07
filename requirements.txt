@@ -7,3 +7,7 @@ fastapi_cache2~=0.2.2
 fastapi-utils~=0.7.0
 typing-inspect~=0.9.0
 slowapi~=0.1.9
+aiohttp~=3.11.11
+matplotlib~=3.10.0
+numpy~=2.2.1
+pillow~=11.1.0

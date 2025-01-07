@@ -11,8 +11,10 @@ from fastapi_utils.tasks import repeat_every
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from fastapi.responses import StreamingResponse
 
 from WarthunderScraping import WarthunderScraping
+from card_generator import card_generator
 
 logging.basicConfig(level="INFO", format='%(process)d | %(levelname)s | %(asctime)s | %(name)s | %(message)s')
 
@@ -62,6 +64,13 @@ async def player_stat(request: Request, response: Response, name: str):
     result = await cache_get_player_stat(name)
     return result
 
+@app.get("/card/{name}")
+async def card(request: Request, response: Response, name: str):
+    data = await player_stat(request=request, response=response, name=name)
+
+    card_buf = await card_generator(data)
+
+    return StreamingResponse(card_buf, media_type="image/png")
 
 @app.get("/favicon.ico")
 async def favicon():
