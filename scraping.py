@@ -23,17 +23,17 @@ class Scraping(metaclass=Singleton):
 
     async def async_init(self):
         if not self._inited:
-            args = []
+            args = ["--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"]
             if self.proxy_host:
-                args = [f"--proxy-server=socks5://{self.proxy_host}:{self.proxy_port}"]
-            self.browser = await zd.start(lang="en-US", browser_args=args)
+                args.append(f"--proxy-server=socks5://{self.proxy_host}:{self.proxy_port}")
+            self.browser = await zd.start(lang="en-US", browser_args=args, sandbox=True, headless=True)
             self._inited = True
 
     async def get_player_stat(self, name: str):
         try:
             await self.async_init()
             window = await self.browser.get(f"https://warthunder.com/en/community/userinfo/?nick={name}",
-                                            new_window=True,)
+                                            new_window=True)
             try:
                 await window.wait_for(selector="#GCM-Container", timeout=30)
             except TimeoutError:

@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y gnupg2 curl wget unzip ca-certificates xvfb x11vnc xterm x11-xserver-utils libgconf-2-4
+RUN apt-get update && apt-get install -y gnupg2 curl wget unzip ca-certificates
 
 # 安装 Chrome WebDriver
 RUN CHROMEDRIVER_VERSION=`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE` && \
@@ -32,16 +32,4 @@ RUN pip3 install -r requirements.txt
 # Expose the port for the FastAPI server
 EXPOSE 5200
 
-# Proxy
-ENV http_proxy http://127.0.0.1:7890
-ENV https_proxy http://127.0.0.1:7890
-ENV HTTP_PROXY http://127.0.0.1:7890
-ENV HTTPS_PROXY http://127.0.0.1:7890
-
-# 设置显示环境变量
-ENV DISPLAY=:99
-
-# 修改启动命令，使用脚本启动 Xvfb 和应用
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-CMD ["/start.sh"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5200", "--log-config", "log_config.yaml"]
