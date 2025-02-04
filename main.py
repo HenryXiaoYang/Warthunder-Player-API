@@ -19,7 +19,7 @@ logging.basicConfig(level="INFO", format='%(process)d | %(levelname)s | %(asctim
 
 # 从环境变量获取代理配置，设置默认值
 PROXY_HOST = os.getenv('PROXY_HOST', '')
-PROXY_PORT = int(os.getenv('PROXY_PORT', ''))
+PROXY_PORT = int(os.getenv('PROXY_PORT', 0))
 
 
 @asynccontextmanager
