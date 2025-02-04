@@ -1,3 +1,4 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -16,6 +17,10 @@ from scraping import Scraping
 
 logging.basicConfig(level="INFO", format='%(process)d | %(levelname)s | %(asctime)s | %(name)s | %(message)s')
 
+# 从环境变量获取代理配置，设置默认值
+PROXY_HOST = os.getenv('PROXY_HOST', '')
+PROXY_PORT = int(os.getenv('PROXY_PORT', ''))
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -30,7 +35,7 @@ app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-scraper = Scraping(proxy_host="127.0.0.1", proxy_port=7890)
+scraper = Scraping(proxy_host=PROXY_HOST, proxy_port=PROXY_PORT)
 
 
 @cache(namespace="warthunder", expire=300)
