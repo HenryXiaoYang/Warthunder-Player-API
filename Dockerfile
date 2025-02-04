@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y gnupg2 curl wget unzip ca-certificates
+RUN apt-get update && apt-get install -y gnupg2 curl wget unzip ca-certificates xvfb x11vnc xterm x11-xserver-utils libgconf-2-4
 
 # 安装 Chrome WebDriver
 RUN CHROMEDRIVER_VERSION=`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE` && \
@@ -37,11 +37,6 @@ ENV http_proxy http://127.0.0.1:7890
 ENV https_proxy http://127.0.0.1:7890
 ENV HTTP_PROXY http://127.0.0.1:7890
 ENV HTTPS_PROXY http://127.0.0.1:7890
-
-# 安装 Xvfb 和其他必要的显示依赖
-RUN apt-get update && \
-    apt-get install -y xvfb x11vnc xterm x11-xserver-utils libgconf-2-4 && \
-    rm -rf /var/lib/apt/lists/*
 
 # 设置显示环境变量
 ENV DISPLAY=:99
