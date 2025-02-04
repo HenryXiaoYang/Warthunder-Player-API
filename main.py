@@ -30,7 +30,7 @@ app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-scraper = Scraping()
+scraper = Scraping(proxy_host="127.0.0.1", proxy_port=7890)
 
 
 @cache(namespace="warthunder", expire=300)
@@ -46,25 +46,25 @@ async def root():
 
 @cache(namespace="warthunder")
 @app.get("/player")
-async def player_stat(request: Request, response: Response, name: str = None):
-    if not name:
+async def player_stat(request: Request, response: Response, nick: str = None):
+    if not nick:
         response.status_code = 400
         return {
             "code": 400,
-            "message": "Parameter \"name\" is required",
+            "message": "Parameter \"nick\" is required",
             "data": None
         }
     
-    if not isinstance(name, str) or len(name.strip()) == 0:
+    if not isinstance(nick, str) or len(nick.strip()) == 0:
         response.status_code = 400
         return {
             "code": 400,
-            "message": "Provided name is invalid",
+            "message": "Provided nick is invalid",
             "data": None
         }
         
 
-    result = await cache_get_player_stat(name)
+    result = await cache_get_player_stat(nick)
     return result
 
 

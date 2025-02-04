@@ -1,7 +1,7 @@
 import logging
 import traceback
 
-import nodriver as uc
+import zendriver as zd
 from bs4 import BeautifulSoup
 
 
@@ -16,20 +16,32 @@ class Singleton(type):
 
 class Scraping(metaclass=Singleton):
 
-    def __init__(self):
+    def __init__(self, proxy_host: str = "", proxy_port: int = 0):
         self._inited = False
+        self.proxy_host = proxy_host
+        self.proxy_port = proxy_port
 
     async def async_init(self):
         if not self._inited:
-            self.browser = await uc.start(lang="en-US")
+            args = []
+            if self.proxy_host:
+                args = [f"--proxy-server=socks5://{self.proxy_host}:{self.proxy_port}"]
+            self.browser = await zd.start(lang="en-US", browser_args=args)
             self._inited = True
 
     async def get_player_stat(self, name: str):
         try:
             await self.async_init()
             window = await self.browser.get(f"https://warthunder.com/en/community/userinfo/?nick={name}",
-                                            new_window=True)
-            await window.wait_for(selector="#GCM-Container", timeout=30)
+                                            new_window=True,)
+            try:
+                await window.wait_for(selector="#GCM-Container", timeout=30)
+            except TimeoutError:
+                await window.close()
+                return {"code": 500, "message": "Request time out.", "tip": "Please try again later.", "data": None}
+            except:
+                await window.close()
+                return {"code": 500, "message": "Internal Server Error", "tip": "Please try again later.", "data": None}
             content = await window.get_content()
             await window.close()
             return self.analyze_html(content)
@@ -437,5 +449,7 @@ class Scraping(metaclass=Singleton):
             output["data"] = data
             return output
 
-        except:
+        except Exception as e:
+            logging.error(e)
+            logging.error(traceback.format_exc())
             return {"code": 500, "message": "Internal Server Error", "tip": "Please try again later."}
